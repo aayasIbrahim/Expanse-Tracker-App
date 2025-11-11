@@ -9,13 +9,37 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Add signup logic (Firebase, NextAuth, API, etc.)
-    console.log({ fullName, email, password });
-    alert("Account created successfully and wait for Permission!");
-    router.push("/login"); // Redirect to login
+    setLoading(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName, email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.message || "Registration failed");
+      } else {
+        setSuccessMsg("Account created successfully!");
+        setTimeout(() => router.push("/login"), 1500);
+      }
+    } catch (error) {
+      console.error("Signup Error:", error);
+      setErrorMsg("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -24,6 +48,7 @@ export default function SignupPage() {
         <h1 className="text-3xl font-bold text-green-400 text-center mb-6">
           Sign Up
         </h1>
+
         <form onSubmit={handleSignup} className="flex flex-col gap-4">
           <input
             type="text"
@@ -62,13 +87,24 @@ export default function SignupPage() {
               )}
             </button>
           </div>
+
+          {/* Error & Success Messages */}
+          {errorMsg && (
+            <p className="text-red-500 text-center text-sm">{errorMsg}</p>
+          )}
+          {successMsg && (
+            <p className="text-green-400 text-center text-sm">{successMsg}</p>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-all"
+            disabled={loading}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-60"
           >
-            Sign Up
+            {loading ? "Creating account..." : "Sign Up"}
           </button>
         </form>
+
         <p className="text-gray-400 text-sm mt-4 text-center">
           Already have an account?{" "}
           <a href="/login" className="text-green-400 hover:underline">

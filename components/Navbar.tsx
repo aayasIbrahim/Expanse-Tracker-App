@@ -24,8 +24,21 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Left: Logo */}
         <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-green-400 cursor-pointer">
-            💰 Expense Tracker
+          <h1
+            className="
+    text-xl sm:text-2xl lg:text-3xl 
+    font-bold 
+    text-green-400 
+    cursor-pointer 
+    flex items-center gap-2 
+    whitespace-nowrap 
+    select-none
+  "
+          >
+            <span role="img" aria-label="money">
+              💰
+            </span>
+            <span className="truncate">Expense Tracker</span>
           </h1>
         </div>
 
