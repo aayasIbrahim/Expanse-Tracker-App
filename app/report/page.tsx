@@ -12,7 +12,6 @@ import {
 } from "recharts";
 
 export default function Report() {
-  // Sample Data (you can later fetch from MongoDB or Firebase)
   const data = [
     { month: "Jan", income: 2500, expense: 1800 },
     { month: "Feb", income: 3000, expense: 2200 },
@@ -27,7 +26,7 @@ export default function Report() {
   const balance = totalIncome - totalExpense;
 
   return (
-    <div className="min-h-screen bg-black text-white px-6 py-10">
+    <div className="min-h-screen bg-black text-white px-4 sm:px-6 lg:px-10 py-8">
       <h1 className="text-3xl font-bold mb-6 text-green-400 text-center">
         Monthly Report
       </h1>
@@ -55,15 +54,15 @@ export default function Report() {
       </div>
 
       {/* Bar Chart */}
-      <div className="bg-gray-900 p-6 rounded-2xl shadow-lg border border-gray-800">
-        <h2 className="text-xl font-semibold mb-4 text-gray-300">
+      <div className="bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-lg border border-gray-800">
+        <h2 className="text-xl font-semibold mb-4 text-gray-300 text-center sm:text-left">
           Income vs Expense Overview
         </h2>
-        <div className="w-full h-96">
+        <div className="w-full h-72 sm:h-96">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
-              margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+              margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#444" />
               <XAxis dataKey="month" stroke="#aaa" />
@@ -77,8 +76,8 @@ export default function Report() {
                 labelStyle={{ color: "#fff" }}
               />
               <Legend />
-              <Bar dataKey="income" fill="#22c55e" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="expense" fill="#ef4444" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="income" fill="#22c55e" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="expense" fill="#ef4444" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

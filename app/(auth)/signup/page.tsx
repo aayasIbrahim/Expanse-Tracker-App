@@ -14,7 +14,7 @@ export default function SignupPage() {
     e.preventDefault();
     // TODO: Add signup logic (Firebase, NextAuth, API, etc.)
     console.log({ fullName, email, password });
-    alert("Account created successfully!");
+    alert("Account created successfully and wait for Permission!");
     router.push("/login"); // Redirect to login
   };
 
@@ -41,27 +41,27 @@ export default function SignupPage() {
             required
             className="px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
           />
-           <div className="relative">
-                     <input
-                       type={showPassword ? "text" : "password"}
-                       placeholder="Password"
-                       value={password}
-                       onChange={(e) => setPassword(e.target.value)}
-                       required
-                       className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-green-500 pr-12"
-                     />
-                     <button
-                       type="button"
-                       onClick={() => setShowPassword(!showPassword)}
-                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-green-400"
-                     >
-                       {showPassword ? (
-                         <AiOutlineEyeInvisible size={20} />
-                       ) : (
-                         <AiOutlineEye size={20} />
-                       )}
-                     </button>
-                   </div>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-green-500 pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-green-400"
+            >
+              {showPassword ? (
+                <AiOutlineEyeInvisible size={20} />
+              ) : (
+                <AiOutlineEye size={20} />
+              )}
+            </button>
+          </div>
           <button
             type="submit"
             className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-all"
