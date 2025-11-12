@@ -1,43 +1,61 @@
 "use client";
-import React from "react";
 
-const managerTransactions = [
-  {
-    id: 1,
-    type: "income",
-    amount: 2000,
-    category: "Project Payment",
-    date: "2025-01-05",
-    note: "Client A",
-  },
-  {
-    id: 2,
-    type: "expense",
-    amount: 300,
-    category: "Transport",
-    date: "2025-01-06",
-    note: "Taxi fare",
-  },
-  {
-    id: 3,
-    type: "expense",
-    amount: 150,
-    category: "Food",
-    date: "2025-01-07",
-    note: "Lunch",
-  },
-];
+import React, { useEffect, useState } from "react";
+
+interface Transaction {
+  _id: string;
+  type: "income" | "expense";
+  category: string;
+  amount: number;
+  note?: string;
+  date: string;
+}
 
 export default function ManagerDashboard() {
-  const totalIncome = managerTransactions
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Fetch transactions from API
+useEffect(() => {
+  const fetchTransactions = async () => {
+    try {
+      const res = await fetch("/api/transactions");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch transactions");
+      }
+
+      setTransactions(data.transactions || []);
+    } catch (err: unknown) {
+      // ✅ Use 'unknown' instead of 'any'
+      if (err instanceof Error) {
+        console.error(err);
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchTransactions();
+}, []);
+  // Calculate totals
+  const totalIncome = transactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpense = managerTransactions
+  const totalExpense = transactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
 
   const balance = totalIncome - totalExpense;
+
+  if (loading) return <p className="text-white text-center mt-20">Loading...</p>;
+  if (error) return <p className="text-red-500 text-center mt-20">{error}</p>;
 
   return (
     <section className="min-h-screen bg-black text-white px-6 py-10">
@@ -68,11 +86,11 @@ export default function ManagerDashboard() {
           </div>
         </div>
 
-        {/* Transactions Cards (Mobile) */}
-        <div className=" grid grid-cols-1 gap-4">
-          {managerTransactions.map((t) => (
+        {/* Transactions List */}
+        <div className="grid grid-cols-1 gap-4">
+          {transactions.map((t) => (
             <div
-              key={t.id}
+              key={t._id}
               className="bg-gray-900 p-4 rounded-2xl shadow-md border border-gray-800"
             >
               <div className="flex justify-between items-center mb-2">
@@ -83,11 +101,11 @@ export default function ManagerDashboard() {
                 >
                   {t.type.toUpperCase()}
                 </span>
-                <span className="text-gray-400 text-sm">{t.date}</span>
+                <span className="text-gray-400 text-sm">{new Date(t.date).toLocaleDateString()}</span>
               </div>
               <p className="text-gray-300">Category: {t.category}</p>
               <p className="text-gray-300">Amount: ${t.amount}</p>
-              <p className="text-gray-400 text-sm">Note: {t.note}</p>
+              <p className="text-gray-400 text-sm">Note: {t.note || "-"}</p>
             </div>
           ))}
         </div>

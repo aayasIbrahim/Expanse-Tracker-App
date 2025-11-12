@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -11,19 +11,73 @@ import {
   CartesianGrid,
 } from "recharts";
 
+interface Transaction {
+  _id: string;
+  type: "income" | "expense";
+  category: string;
+  amount: number;
+  date: string; // ISO string
+}
+
+interface MonthlyData {
+  month: string;
+  income: number;
+  expense: number;
+}
+
 export default function Report() {
-  const data = [
-    { month: "Jan", income: 2500, expense: 1800 },
-    { month: "Feb", income: 3000, expense: 2200 },
-    { month: "Mar", income: 2800, expense: 2500 },
-    { month: "Apr", income: 3500, expense: 2700 },
-    { month: "May", income: 3200, expense: 2000 },
-    { month: "Jun", income: 4000, expense: 2900 },
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const res = await fetch("/api/transactions");
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || "Failed to fetch transactions");
+
+        setTransactions(data.transactions || []);
+      } catch (err: unknown) {
+        if (err instanceof Error) setError(err.message);
+        else setError("Unexpected error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
+
+  // Process transactions into monthly data
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
 
-  const totalIncome = data.reduce((sum, d) => sum + d.income, 0);
-  const totalExpense = data.reduce((sum, d) => sum + d.expense, 0);
+  const monthlyData: MonthlyData[] = months.map((month, index) => {
+    const monthTransactions = transactions.filter(
+      (t) => new Date(t.date).getMonth() === index
+    );
+
+    const income = monthTransactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const expense = monthTransactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return { month, income, expense };
+  });
+
+  const totalIncome = monthlyData.reduce((sum, d) => sum + d.income, 0);
+  const totalExpense = monthlyData.reduce((sum, d) => sum + d.expense, 0);
   const balance = totalIncome - totalExpense;
+
+  if (loading) return <p className="text-white text-center mt-10">Loading...</p>;
+  if (error) return <p className="text-red-500 text-center mt-10">{error}</p>;
 
   return (
     <div className="min-h-screen bg-black text-white px-4 sm:px-6 lg:px-10 py-8">
@@ -61,7 +115,7 @@ export default function Report() {
         <div className="w-full h-72 sm:h-96">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={data}
+              data={monthlyData}
               margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#444" />

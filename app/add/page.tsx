@@ -13,20 +13,33 @@ export default function AddExpense() {
       ? ["Food", "Transport", "Shopping", "Bills", "Health", "Other"]
       : ["Salary", "Business", "Freelance", "Investments", "Other"];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newTransaction = { type, category, amount, note, date };
-    console.log("🧾 Transaction Added:", newTransaction);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    // Later you’ll send this data to MongoDB or Firebase:
-    // await fetch("/api/transactions", { method: "POST", body: JSON.stringify(newTransaction) });
+  const newTransaction = { type, category, amount: Number(amount), note, date };
 
-    alert("✅ Transaction Added Successfully!");
-    setAmount("");
-    setCategory("");
-    setNote("");
-    setDate("");
-  };
+  try {
+    const res = await fetch("/api/transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newTransaction),
+    });
+
+    if (res.ok) {
+      alert("✅ Transaction Added Successfully!");
+      setAmount("");
+      setCategory("");
+      setNote("");
+      setDate("");
+    } else {
+      const error = await res.json();
+      alert("❌ Failed: " + error.error);
+    }
+  } catch (error) {
+    console.error(error);
+    alert("❌ Something went wrong!");
+  }
+};
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">
