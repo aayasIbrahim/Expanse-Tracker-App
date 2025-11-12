@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/libs/db";
 import Transaction from "@/models/Transaction";
+import User from "@/models/User";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/libs/authOption"; // your NextAuth config
+import { authOptions } from "@/libs/authOption";
 
 // ✅ POST — Add new transaction
 export async function POST(req: Request) {
   try {
     await connectDB();
 
-    // Get session to identify the user
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,13 +25,29 @@ export async function POST(req: Request) {
       );
     }
 
-    const newTransaction = await Transaction.create({
-      userId: session.user.id, // ✅ Attach logged-in user
+    // ✅ Check if user exists (extra safety)
+    const user = await User.findById(session.user.id).select("name email");
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // ✅ Create new transaction
+    const newTransaction = new Transaction({
+      userId: user._id,
       type,
       category,
       amount,
       note,
       date,
+    });
+
+    await newTransaction.save();
+
+    // ✅ Force populate user details after save
+    await newTransaction.populate({
+      path: "userId",
+      select: "name email",
+      model: "User",
     });
 
     return NextResponse.json(
@@ -40,14 +56,11 @@ export async function POST(req: Request) {
     );
   } catch (error) {
     console.error("POST /transactions error:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
-// ✅ GET — Fetch all transactions for logged-in user
+// ✅ GET — Fetch transactions (Admin → All, User → Own)
 export async function GET() {
   try {
     await connectDB();
@@ -57,16 +70,32 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const transactions = await Transaction.find({ userId: session.user.id }).sort({
-      date: -1,
-    });
+    // ✅ Load current user from DB
+    const currentUser = await User.findById(session.user.id).select("role name email");
+    if (!currentUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const isAdminOrManager =
+      currentUser.role === "admin" || currentUser.role === "manager";
+
+    let transactions;
+
+    if (isAdminOrManager) {
+      // ✅ Admin/Manager → All transactions with user info
+      transactions = await Transaction.find()
+        .populate({ path: "userId", select: "name email", model: "User" })
+        .sort({ date: -1 });
+    } else {
+      // ✅ Normal user → Only own transactions
+      transactions = await Transaction.find({ userId: currentUser._id })
+        .populate({ path: "userId", select: "name email", model: "User" })
+        .sort({ date: -1 });
+    }
 
     return NextResponse.json({ success: true, transactions }, { status: 200 });
   } catch (error) {
     console.error("GET /transactions error:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

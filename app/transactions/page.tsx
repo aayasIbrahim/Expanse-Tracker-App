@@ -1,13 +1,34 @@
 "use client";
 import React, { useEffect, useState } from "react";
 
+// 🎯 User interface — for populated user data
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+// 🎯 Transaction interface
 interface Transaction {
   _id: string;
-  user: string;
+  userId: User; // user info will be populated (object)
   type: "income" | "expense";
   category: string;
   amount: number;
-  date: string; // ISO string
+  date: string;
+  note?: string;
+}
+interface RawTransaction {
+  _id: string;
+  userId?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  type: "income" | "expense";
+  category: string;
+  amount: number;
+  date: string;
   note?: string;
 }
 
@@ -17,16 +38,35 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch transactions from API
+  // 🔹 Fetch transactions from backend API
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
         const res = await fetch("/api/transactions");
         const data = await res.json();
 
-        if (!res.ok) throw new Error(data.error || "Failed to fetch transactions");
+        if (!res.ok)
+          throw new Error(data.error || "Failed to fetch transactions");
 
-        setTransactions(data.transactions || []);
+        // ✅ Map with proper type instead of `any`
+        const formattedData: Transaction[] = (
+          data.transactions as RawTransaction[]
+        ).map((t) => ({
+          _id: t._id,
+          userId: {
+            _id: t.userId?._id || "",
+            name: t.userId?.name || "Unknown",
+            email: t.userId?.email || "N/A",
+          },
+          type: t.type,
+          category: t.category,
+          amount: t.amount,
+          date: t.date,
+          note: t.note,
+        }));
+
+        console.log("Fetched transactions:", formattedData);
+        setTransactions(formattedData);
       } catch (err: unknown) {
         if (err instanceof Error) setError(err.message);
         else setError("Unexpected error");
@@ -38,13 +78,15 @@ export default function Transactions() {
     fetchTransactions();
   }, []);
 
- const filteredTransactions = transactions.filter(
-  (t) =>
-    (t.user?.toLowerCase() ?? "").includes(search.toLowerCase()) ||
-    (t.category?.toLowerCase() ?? "").includes(search.toLowerCase())
-);
+  // 🔍 Filter by user name or category
+  const filteredTransactions = transactions.filter((t) => {
+    const userName = t.userId?.name?.toLowerCase() ?? "";
+    const category = t.category?.toLowerCase() ?? "";
+    const searchTerm = search.toLowerCase();
+    return userName.includes(searchTerm) || category.includes(searchTerm);
+  });
 
-
+  // 💰 Calculate totals
   const totalIncome = transactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
@@ -55,16 +97,16 @@ export default function Transactions() {
 
   const balance = totalIncome - totalExpense;
 
+  // 🗑️ Delete Transaction
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this transaction?")) return;
 
     try {
-      const res = await fetch(`/api/transactions/${id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || "Failed to delete transaction");
+      if (!res.ok)
+        throw new Error(data.error || "Failed to delete transaction");
 
       setTransactions(transactions.filter((t) => t._id !== id));
       alert("Transaction deleted successfully!");
@@ -74,26 +116,39 @@ export default function Transactions() {
     }
   };
 
-  if (loading) return <p className="text-white text-center mt-10">Loading...</p>;
+  // 🌀 Loading / Error UI
+  if (loading)
+    return <p className="text-white text-center mt-10">Loading...</p>;
   if (error) return <p className="text-red-500 text-center mt-10">{error}</p>;
 
+  // 🎨 UI
   return (
     <div className="min-h-screen bg-black text-white px-6 py-10">
-      <h1 className="text-3xl font-bold mb-6 text-green-400 text-center">Transactions Management</h1>
+      <h1 className="text-3xl font-bold mb-6 text-green-400 text-center">
+        Transactions Management
+      </h1>
 
-      {/* Summary Cards */}
+      {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-        <div className="bg-gray-900 p-6 rounded-2xl shadow-md border border-gray-800 text-center">
+        <div className="bg-gray-900 p-6 rounded-2xl text-center border border-gray-800">
           <h2 className="text-gray-400 mb-2">Total Income</h2>
-          <p className="text-2xl font-bold text-green-500">${totalIncome.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-green-500">
+            ${totalIncome.toLocaleString()}
+          </p>
         </div>
-        <div className="bg-gray-900 p-6 rounded-2xl shadow-md border border-gray-800 text-center">
+        <div className="bg-gray-900 p-6 rounded-2xl text-center border border-gray-800">
           <h2 className="text-gray-400 mb-2">Total Expense</h2>
-          <p className="text-2xl font-bold text-red-500">${totalExpense.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-red-500">
+            ${totalExpense.toLocaleString()}
+          </p>
         </div>
-        <div className="bg-gray-900 p-6 rounded-2xl shadow-md border border-gray-800 text-center">
+        <div className="bg-gray-900 p-6 rounded-2xl text-center border border-gray-800">
           <h2 className="text-gray-400 mb-2">Balance</h2>
-          <p className={`text-2xl font-bold ${balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+          <p
+            className={`text-2xl font-bold ${
+              balance >= 0 ? "text-green-400" : "text-red-400"
+            }`}
+          >
             ${balance.toLocaleString()}
           </p>
         </div>
@@ -110,12 +165,13 @@ export default function Transactions() {
         />
       </div>
 
-      {/* Desktop Table */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-gray-900 border border-gray-800 rounded-xl">
           <thead className="bg-gray-800">
             <tr>
               <th className="px-6 py-3 text-left text-gray-300">User</th>
+              <th className="px-6 py-3 text-left text-gray-300">Email</th>
               <th className="px-6 py-3 text-left text-gray-300">Type</th>
               <th className="px-6 py-3 text-left text-gray-300">Category</th>
               <th className="px-6 py-3 text-left text-gray-300">Amount</th>
@@ -127,25 +183,35 @@ export default function Transactions() {
           <tbody>
             {filteredTransactions.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-6 text-gray-400">
+                <td colSpan={8} className="text-center py-6 text-gray-400">
                   No transactions found.
                 </td>
               </tr>
             ) : (
               filteredTransactions.map((t) => (
-                <tr key={t._id} className="border-b border-gray-800 hover:bg-gray-800 transition">
-                  <td className="px-6 py-4">{t.user}</td>
-                  <td className={`px-6 py-4 capitalize ${t.type === "income" ? "text-green-500" : "text-red-500"}`}>
+                <tr
+                  key={t._id}
+                  className="border-b border-gray-800 hover:bg-gray-800 transition"
+                >
+                  <td className="px-6 py-4">{t.userId?.name}</td>
+                  <td className="px-6 py-4">{t.userId?.email}</td>
+                  <td
+                    className={`px-6 py-4 capitalize ${
+                      t.type === "income" ? "text-green-500" : "text-red-500"
+                    }`}
+                  >
                     {t.type}
                   </td>
                   <td className="px-6 py-4">{t.category}</td>
                   <td className="px-6 py-4">${t.amount.toLocaleString()}</td>
-                  <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td>
+                  <td className="px-6 py-4">
+                    {new Date(t.date).toLocaleDateString()}
+                  </td>
                   <td className="px-6 py-4">{t.note || "-"}</td>
                   <td className="px-6 py-4 flex gap-3">
                     <button
                       className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-md text-white text-sm"
-                      onClick={() => alert("Edit functionality coming soon!")}
+                      onClick={() => alert("Edit coming soon!")}
                     >
                       Edit
                     </button>
@@ -161,40 +227,6 @@ export default function Transactions() {
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* Mobile Cards */}
-      <div className="md:hidden grid grid-cols-1 gap-4">
-        {filteredTransactions.length === 0 ? (
-          <p className="text-center text-gray-400">No transactions found.</p>
-        ) : (
-          filteredTransactions.map((t) => (
-            <div key={t._id} className="bg-gray-900 p-4 rounded-2xl shadow-md border border-gray-800">
-              <h2 className="text-lg font-semibold text-green-400">{t.user}</h2>
-              <p className={`capitalize ${t.type === "income" ? "text-green-500" : "text-red-500"}`}>
-                {t.type}
-              </p>
-              <p className="text-gray-300">Category: {t.category}</p>
-              <p className="text-gray-300">Amount: ${t.amount.toLocaleString()}</p>
-              <p className="text-gray-400 text-sm">Date: {new Date(t.date).toLocaleDateString()}</p>
-              <p className="text-gray-400 text-sm">Note: {t.note || "-"}</p>
-              <div className="mt-3 flex gap-3">
-                <button
-                  className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-md text-white text-sm"
-                  onClick={() => alert("Edit functionality coming soon!")}
-                >
-                  Edit
-                </button>
-                <button
-                  className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white text-sm"
-                  onClick={() => handleDelete(t._id)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))
-        )}
       </div>
     </div>
   );
