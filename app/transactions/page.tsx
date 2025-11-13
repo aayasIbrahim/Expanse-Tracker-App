@@ -1,84 +1,24 @@
 "use client";
-import React, { useEffect, useState } from "react";
-
-// 🎯 User interface — for populated user data
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-}
-
-// 🎯 Transaction interface
-interface Transaction {
-  _id: string;
-  userId: User; // user info will be populated (object)
-  type: "income" | "expense";
-  category: string;
-  amount: number;
-  date: string;
-  note?: string;
-}
-interface RawTransaction {
-  _id: string;
-  userId?: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  type: "income" | "expense";
-  category: string;
-  amount: number;
-  date: string;
-  note?: string;
-}
+import React, { useState } from "react";
+import {
+  Transaction,
+  useGetTransactionsQuery,
+  useDeleteTransactionMutation,
+  useUpdateTransactionMutation,
+} from "@/app/redux/features/transaction/transactionApi";
+import TransactionForm from "@/components/TransactionForm";
 
 export default function Transactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { data, isLoading, error } = useGetTransactionsQuery();
+  const [deleteTransaction] = useDeleteTransactionMutation();
+  const [updateTransaction] = useUpdateTransactionMutation();
+
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
-  // 🔹 Fetch transactions from backend API
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const res = await fetch("/api/transactions");
-        const data = await res.json();
+  const transactions = data?.transactions || [];
 
-        if (!res.ok)
-          throw new Error(data.error || "Failed to fetch transactions");
-
-        // ✅ Map with proper type instead of `any`
-        const formattedData: Transaction[] = (
-          data.transactions as RawTransaction[]
-        ).map((t) => ({
-          _id: t._id,
-          userId: {
-            _id: t.userId?._id || "",
-            name: t.userId?.name || "Unknown",
-            email: t.userId?.email || "N/A",
-          },
-          type: t.type,
-          category: t.category,
-          amount: t.amount,
-          date: t.date,
-          note: t.note,
-        }));
-
-        console.log("Fetched transactions:", formattedData);
-        setTransactions(formattedData);
-      } catch (err: unknown) {
-        if (err instanceof Error) setError(err.message);
-        else setError("Unexpected error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTransactions();
-  }, []);
-
-  // 🔍 Filter by user name or category
   const filteredTransactions = transactions.filter((t) => {
     const userName = t.userId?.name?.toLowerCase() ?? "";
     const category = t.category?.toLowerCase() ?? "";
@@ -86,75 +26,45 @@ export default function Transactions() {
     return userName.includes(searchTerm) || category.includes(searchTerm);
   });
 
-  // 💰 Calculate totals
-  const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
+  // const totalIncome = transactions.filter(t => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+  // const totalExpense = transactions.filter(t => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
+  // const balance = totalIncome - totalExpense;
+  
 
-  const totalExpense = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const balance = totalIncome - totalExpense;
-
-  // 🗑️ Delete Transaction
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this transaction?")) return;
-
+    if (!confirm("Are you sure?")) return;
     try {
-      const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
-      const data = await res.json();
-
-      if (!res.ok)
-        throw new Error(data.error || "Failed to delete transaction");
-
-      setTransactions(transactions.filter((t) => t._id !== id));
-      alert("Transaction deleted successfully!");
-    } catch (err: unknown) {
-      if (err instanceof Error) alert(err.message);
-      else alert("Unexpected error occurred.");
+      await deleteTransaction(id).unwrap();
+      alert("Deleted successfully!");
+    } catch {
+      alert("Failed to delete!");
     }
   };
 
-  // 🌀 Loading / Error UI
-  if (loading)
-    return <p className="text-white text-center mt-10">Loading...</p>;
-  if (error) return <p className="text-red-500 text-center mt-10">{error}</p>;
+  const handleEdit = (transaction: Transaction) => {
+    setEditTransaction(transaction);
+    setShowModal(true);
+  };
 
-  // 🎨 UI
+  const handleUpdate = async (updatedData: Partial<Transaction>) => {
+    if (!editTransaction) return;
+    try {
+      await updateTransaction({ id: editTransaction._id, data: updatedData }).unwrap();
+      setShowModal(false);
+      setEditTransaction(null);
+      alert("Updated successfully!");
+    } catch {
+      alert("Failed to update!");
+    }
+  };
+
+  if (isLoading) return <p className="text-white text-center mt-10">Loading...</p>;
+  if (error) return <p className="text-red-500 text-center mt-10">Failed to load</p>;
+
   return (
     <div className="min-h-screen bg-black text-white px-6 py-10">
-      <h1 className="text-3xl font-bold mb-6 text-green-400 text-center">
-        Transactions Management
-      </h1>
+      <h1 className="text-3xl font-bold text-green-400 text-center mb-6">Transactions</h1>
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-        <div className="bg-gray-900 p-6 rounded-2xl text-center border border-gray-800">
-          <h2 className="text-gray-400 mb-2">Total Income</h2>
-          <p className="text-2xl font-bold text-green-500">
-            ${totalIncome.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-gray-900 p-6 rounded-2xl text-center border border-gray-800">
-          <h2 className="text-gray-400 mb-2">Total Expense</h2>
-          <p className="text-2xl font-bold text-red-500">
-            ${totalExpense.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-gray-900 p-6 rounded-2xl text-center border border-gray-800">
-          <h2 className="text-gray-400 mb-2">Balance</h2>
-          <p
-            className={`text-2xl font-bold ${
-              balance >= 0 ? "text-green-400" : "text-red-400"
-            }`}
-          >
-            ${balance.toLocaleString()}
-          </p>
-        </div>
-      </div>
-
-      {/* Search */}
       <div className="mb-6 flex justify-center">
         <input
           type="text"
@@ -165,13 +75,11 @@ export default function Transactions() {
         />
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto">
         <table className="min-w-full bg-gray-900 border border-gray-800 rounded-xl">
           <thead className="bg-gray-800">
             <tr>
               <th className="px-6 py-3 text-left text-gray-300">User</th>
-              <th className="px-6 py-3 text-left text-gray-300">Email</th>
               <th className="px-6 py-3 text-left text-gray-300">Type</th>
               <th className="px-6 py-3 text-left text-gray-300">Category</th>
               <th className="px-6 py-3 text-left text-gray-300">Amount</th>
@@ -183,44 +91,20 @@ export default function Transactions() {
           <tbody>
             {filteredTransactions.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center py-6 text-gray-400">
-                  No transactions found.
-                </td>
+                <td colSpan={7} className="text-center py-6 text-gray-400">No transactions found.</td>
               </tr>
             ) : (
               filteredTransactions.map((t) => (
-                <tr
-                  key={t._id}
-                  className="border-b border-gray-800 hover:bg-gray-800 transition"
-                >
+                <tr key={t._id} className="border-b border-gray-800 hover:bg-gray-800 transition">
                   <td className="px-6 py-4">{t.userId?.name}</td>
-                  <td className="px-6 py-4">{t.userId?.email}</td>
-                  <td
-                    className={`px-6 py-4 capitalize ${
-                      t.type === "income" ? "text-green-500" : "text-red-500"
-                    }`}
-                  >
-                    {t.type}
-                  </td>
+                  <td className={`px-6 py-4 ${t.type === "income" ? "text-green-500" : "text-red-500"}`}>{t.type}</td>
                   <td className="px-6 py-4">{t.category}</td>
                   <td className="px-6 py-4">${t.amount.toLocaleString()}</td>
-                  <td className="px-6 py-4">
-                    {new Date(t.date).toLocaleDateString()}
-                  </td>
+                  <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td>
                   <td className="px-6 py-4">{t.note || "-"}</td>
-                  <td className="px-6 py-4 flex gap-3">
-                    <button
-                      className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-md text-white text-sm"
-                      onClick={() => alert("Edit coming soon!")}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded-md text-white text-sm"
-                      onClick={() => handleDelete(t._id)}
-                    >
-                      Delete
-                    </button>
+                  <td className="px-6 py-4 flex gap-2">
+                    <button className="bg-green-600 px-3 py-1 rounded" onClick={() => handleEdit(t)}>Edit</button>
+                    <button className="bg-red-600 px-3 py-1 rounded" onClick={() => handleDelete(t._id)}>Delete</button>
                   </td>
                 </tr>
               ))
@@ -228,6 +112,14 @@ export default function Transactions() {
           </tbody>
         </table>
       </div>
+
+      {showModal && editTransaction && (
+        <TransactionForm
+          transaction={editTransaction}
+          onClose={() => { setShowModal(false); setEditTransaction(null); }}
+          onSubmit={handleUpdate} // ✅ matches type now
+        />
+      )}
     </div>
   );
 }
