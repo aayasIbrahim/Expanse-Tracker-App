@@ -38,20 +38,20 @@ export default function ManagerDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
           <div className="bg-gray-900 p-6 rounded-2xl text-center border border-gray-800">
             <h2 className="text-gray-400 mb-2">Total Income</h2>
-            <p className="text-2xl font-bold text-green-500">${totalIncome}</p>
+            <p className="text-2xl font-bold text-green-500">TK {totalIncome}</p>
           </div>
           <div className="bg-gray-900 p-6 rounded-2xl text-center border border-gray-800">
             <h2 className="text-gray-400 mb-2">Total Expense</h2>
-            <p className="text-2xl font-bold text-red-500">${totalExpense}</p>
+            <p className="text-2xl font-bold text-red-500">TK {totalExpense}</p>
           </div>
           <div className="bg-gray-900 p-6 rounded-2xl text-center border border-gray-800">
-            <h2 className="text-gray-400 mb-2">Balance</h2>
+            <h2 className="text-gray-400 mb-2">Saving</h2>
             <p
               className={`text-2xl font-bold ${
                 balance >= 0 ? "text-green-400" : "text-red-400"
               }`}
             >
-              ${balance}
+              TK {balance}
             </p>
           </div>
         </div>

@@ -85,12 +85,12 @@ export async function GET() {
       // ✅ Admin/Manager → All transactions with user info
       transactions = await Transaction.find()
         .populate({ path: "userId", select: "name email", model: "User" })
-        .sort({ date: -1 });
+        .sort({  createdAt: -1 });
     } else {
       // ✅ Normal user → Only own transactions
       transactions = await Transaction.find({ userId: currentUser._id })
         .populate({ path: "userId", select: "name email", model: "User" })
-        .sort({ date: -1 });
+        .sort({  createdAt: -1 });
     }
 
     return NextResponse.json({ success: true, transactions }, { status: 200 });

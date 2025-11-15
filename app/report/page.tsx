@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   BarChart,
   Bar,
@@ -10,14 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-
-interface Transaction {
-  _id: string;
-  type: "income" | "expense";
-  category: string;
-  amount: number;
-  date: string; // ISO string
-}
+import { useGetTransactionsQuery } from "@/app/redux/features/transaction/transactionApi";
 
 interface MonthlyData {
   month: string;
@@ -26,36 +19,18 @@ interface MonthlyData {
 }
 
 export default function Report() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  // 🟢 RTK Query Fetch
+  const { data, error, isLoading } = useGetTransactionsQuery();
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const res = await fetch("/api/transactions");
-        const data = await res.json();
+  const transactions = data?.transactions || [];
 
-        if (!res.ok) throw new Error(data.error || "Failed to fetch transactions");
-
-        setTransactions(data.transactions || []);
-      } catch (err: unknown) {
-        if (err instanceof Error) setError(err.message);
-        else setError("Unexpected error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTransactions();
-  }, []);
-
-  // Process transactions into monthly data
+  // Month names
   const months = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
 
+  // Generate monthly chart data
   const monthlyData: MonthlyData[] = months.map((month, index) => {
     const monthTransactions = transactions.filter(
       (t) => new Date(t.date).getMonth() === index
@@ -76,8 +51,16 @@ export default function Report() {
   const totalExpense = monthlyData.reduce((sum, d) => sum + d.expense, 0);
   const balance = totalIncome - totalExpense;
 
-  if (loading) return <p className="text-white text-center mt-10">Loading...</p>;
-  if (error) return <p className="text-red-500 text-center mt-10">{error}</p>;
+  // Loading / Error UI
+  if (isLoading)
+    return <p className="text-white text-center mt-10">Loading...</p>;
+
+  if (error)
+    return (
+      <p className="text-red-500 text-center mt-10">
+        Failed to load report ❌
+      </p>
+    );
 
   return (
     <div className="min-h-screen bg-black text-white px-4 sm:px-6 lg:px-10 py-8">
@@ -89,20 +72,20 @@ export default function Report() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
         <div className="bg-gray-900 p-6 rounded-2xl shadow-md border border-gray-800 text-center">
           <h2 className="text-gray-400 mb-2">Total Income</h2>
-          <p className="text-2xl font-bold text-green-500">${totalIncome}</p>
+          <p className="text-2xl font-bold text-green-500">TK {totalIncome}</p>
         </div>
         <div className="bg-gray-900 p-6 rounded-2xl shadow-md border border-gray-800 text-center">
           <h2 className="text-gray-400 mb-2">Total Expense</h2>
-          <p className="text-2xl font-bold text-red-500">${totalExpense}</p>
+          <p className="text-2xl font-bold text-red-500">TK {totalExpense}</p>
         </div>
         <div className="bg-gray-900 p-6 rounded-2xl shadow-md border border-gray-800 text-center">
-          <h2 className="text-gray-400 mb-2">Balance</h2>
+          <h2 className="text-gray-400 mb-2">Saving</h2>
           <p
             className={`text-2xl font-bold ${
               balance >= 0 ? "text-green-400" : "text-red-400"
             }`}
           >
-            ${balance}
+            TK {balance}
           </p>
         </div>
       </div>
@@ -112,6 +95,7 @@ export default function Report() {
         <h2 className="text-xl font-semibold mb-4 text-gray-300 text-center sm:text-left">
           Income vs Expense Overview
         </h2>
+
         <div className="w-full h-72 sm:h-96">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
