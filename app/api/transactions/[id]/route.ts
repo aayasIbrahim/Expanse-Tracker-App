@@ -59,7 +59,7 @@ export async function PUT(
 // ✅ Delete transaction (DELETE)
 export async function DELETE(
   req: Request,
-  context: { params: Promise<{ id: string }> } // ✅ same fix here
+  context: { params: Promise<{ id: string }> } 
 ) {
   try {
     await connectDB();

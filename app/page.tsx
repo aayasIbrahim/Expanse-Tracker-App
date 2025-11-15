@@ -76,7 +76,7 @@ export default function ManagerDashboard() {
                 </span>
               </div>
               <p className="text-gray-300">Category: {t.category}</p>
-              <p className="text-gray-300">Amount: ${t.amount}</p>
+              <p className="text-gray-300">Amount: {t.amount} tk</p>
               <p className="text-gray-400 text-sm">Note: {t.note || "-"}</p>
             </div>
           ))}

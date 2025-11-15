@@ -79,7 +79,7 @@ export default function Transactions() {
         <table className="min-w-full bg-gray-900 border border-gray-800 rounded-xl">
           <thead className="bg-gray-800">
             <tr>
-              <th className="px-6 py-3 text-left text-gray-300">User</th>
+              <th className="px-6 py-3 text-left text-gray-300">Name</th>
               <th className="px-6 py-3 text-left text-gray-300">Type</th>
               <th className="px-6 py-3 text-left text-gray-300">Category</th>
               <th className="px-6 py-3 text-left text-gray-300">Amount</th>
@@ -99,7 +99,7 @@ export default function Transactions() {
                   <td className="px-6 py-4">{t.userId?.name}</td>
                   <td className={`px-6 py-4 ${t.type === "income" ? "text-green-500" : "text-red-500"}`}>{t.type}</td>
                   <td className="px-6 py-4">{t.category}</td>
-                  <td className="px-6 py-4">${t.amount.toLocaleString()}</td>
+                  <td className="px-6 py-4">{t.amount.toLocaleString()} tk</td>
                   <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td>
                   <td className="px-6 py-4">{t.note || "-"}</td>
                   <td className="px-6 py-4 flex gap-2">
