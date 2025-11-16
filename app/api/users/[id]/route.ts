@@ -14,8 +14,7 @@ export async function PUT(
   context: { params: Promise<Params> }
 ) {
   try {
-    const { id } = await context.params; // ✅ FIX: await params
-    
+    const { id } = await context.params;
     await dbConnect();
 
     const body: UpdateBody = await req.json();
@@ -29,7 +28,7 @@ export async function PUT(
     }
 
     const user = await User.findByIdAndUpdate(
-      id,            // ✅ now correct
+      id,            
       { role },
       { new: true }
     ).lean();

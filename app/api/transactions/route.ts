@@ -60,8 +60,8 @@ export async function POST(req: Request) {
   }
 }
 
-// ✅ GET — Fetch transactions (Admin → All, User → Own)
-export async function GET() {
+// ✅ GET — Fetch transactions with pagination
+export async function GET(req: Request) {
   try {
     await connectDB();
 
@@ -70,7 +70,6 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ✅ Load current user from DB
     const currentUser = await User.findById(session.user.id).select("role name email");
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -79,21 +78,28 @@ export async function GET() {
     const isAdminOrManager =
       currentUser.role === "admin" || currentUser.role === "manager";
 
-    let transactions;
+    // ✅ Extract pagination params
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
 
-    if (isAdminOrManager) {
-      // ✅ Admin/Manager → All transactions with user info
-      transactions = await Transaction.find()
-        .populate({ path: "userId", select: "name email", model: "User" })
-        .sort({  createdAt: -1 });
-    } else {
-      // ✅ Normal user → Only own transactions
-      transactions = await Transaction.find({ userId: currentUser._id })
-        .populate({ path: "userId", select: "name email", model: "User" })
-        .sort({  createdAt: -1 });
-    }
+    const query = isAdminOrManager
+      ? Transaction.find()
+      : Transaction.find({ userId: currentUser._id });
 
-    return NextResponse.json({ success: true, transactions }, { status: 200 });
+    const total = await query.clone().countDocuments();
+
+    const transactions = await query
+      .populate({ path: "userId", select: "name email", model: "User" })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return NextResponse.json(
+      { success: true, transactions, total, page, limit },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("GET /transactions error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

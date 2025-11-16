@@ -7,9 +7,14 @@ import {
   useUpdateTransactionMutation,
 } from "@/app/redux/features/transaction/transactionApi";
 import TransactionForm from "@/components/TransactionForm";
+import Pagination from "@/components/Pagination";
+
 
 export default function Transactions() {
-  const { data, isLoading, error } = useGetTransactionsQuery();
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
+  const { data, isLoading, error } = useGetTransactionsQuery({ page, limit });
   const [deleteTransaction] = useDeleteTransactionMutation();
   const [updateTransaction] = useUpdateTransactionMutation();
 
@@ -18,6 +23,8 @@ export default function Transactions() {
   const [showModal, setShowModal] = useState(false);
 
   const transactions = data?.transactions || [];
+  const total = data?.total || 0;
+  const totalPages = Math.ceil(total / limit);
 
   const filteredTransactions = transactions.filter((t) => {
     const userName = t.userId?.name?.toLowerCase() ?? "";
@@ -25,11 +32,6 @@ export default function Transactions() {
     const searchTerm = search.toLowerCase();
     return userName.includes(searchTerm) || category.includes(searchTerm);
   });
-
-  // const totalIncome = transactions.filter(t => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
-  // const totalExpense = transactions.filter(t => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
-  // const balance = totalIncome - totalExpense;
-  
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure?")) return;
@@ -91,20 +93,28 @@ export default function Transactions() {
           <tbody>
             {filteredTransactions.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-6 text-gray-400">No transactions found.</td>
+                <td colSpan={7} className="text-center py-6 text-gray-400">
+                  No transactions found.
+                </td>
               </tr>
             ) : (
               filteredTransactions.map((t) => (
                 <tr key={t._id} className="border-b border-gray-800 hover:bg-gray-800 transition">
                   <td className="px-6 py-4">{t.userId?.name}</td>
-                  <td className={`px-6 py-4 ${t.type === "income" ? "text-green-500" : "text-red-500"}`}>{t.type}</td>
+                  <td className={`px-6 py-4 ${t.type === "income" ? "text-green-500" : "text-red-500"}`}>
+                    {t.type}
+                  </td>
                   <td className="px-6 py-4">{t.category}</td>
                   <td className="px-6 py-4">{t.amount.toLocaleString()} tk</td>
                   <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td>
                   <td className="px-6 py-4">{t.note || "-"}</td>
                   <td className="px-6 py-4 flex gap-2">
-                    <button className="bg-green-600 px-3 py-1 rounded" onClick={() => handleEdit(t)}>Edit</button>
-                    <button className="bg-red-600 px-3 py-1 rounded" onClick={() => handleDelete(t._id)}>Delete</button>
+                    <button className="bg-green-600 px-3 py-1 rounded" onClick={() => handleEdit(t)}>
+                      Edit
+                    </button>
+                    <button className="bg-red-600 px-3 py-1 rounded" onClick={() => handleDelete(t._id)}>
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))
@@ -113,11 +123,19 @@ export default function Transactions() {
         </table>
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+      )}
+
       {showModal && editTransaction && (
         <TransactionForm
           transaction={editTransaction}
-          onClose={() => { setShowModal(false); setEditTransaction(null); }}
-          onSubmit={handleUpdate} // 
+          onClose={() => {
+            setShowModal(false);
+            setEditTransaction(null);
+          }}
+          onSubmit={handleUpdate}
         />
       )}
     </div>

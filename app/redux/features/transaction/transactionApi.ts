@@ -9,7 +9,7 @@ export interface User {
 export interface Transaction {
   _id: string;
   userId: User;
-  type: string;
+  type: "income" | "expense";
   category: string;
   amount: number;
   note?: string;
@@ -19,6 +19,9 @@ export interface Transaction {
 interface GetTransactionResponse {
   success: boolean;
   transactions: Transaction[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 // ✅ Create API Slice
@@ -28,9 +31,12 @@ export const transactionApi = createApi({
   tagTypes: ["Transaction"],
 
   endpoints: (builder) => ({
-    // ✅ Get all transactions (admin → all, user → own)
-    getTransactions: builder.query<GetTransactionResponse, void>({
-      query: () => "/",
+    // ✅ Get all transactions with pagination
+    getTransactions: builder.query<
+      GetTransactionResponse,
+      { page: number; limit: number }
+    >({
+      query: ({ page, limit }) => `/?page=${page}&limit=${limit}`,
       providesTags: (result) =>
         result
           ? [
