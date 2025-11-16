@@ -1,55 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
+import  connectDB  from "@/libs/db";
 import User from "@/models/User";
-import dbConnect from "@/libs/db";
 
-interface Params {
-  id: string;
-}
-
-interface UpdateBody {
-  role: string;
-}
-export async function PUT(
-  req: NextRequest,
-  context: { params: Promise<Params> }
-) {
+export async function GET(req: NextRequest, { params }: { params: { _id: string } }) {
   try {
-    const { id } = await context.params;
-    await dbConnect();
-
-    const body: UpdateBody = await req.json();
-    const { role } = body;
-
-    if (!role) {
-      return NextResponse.json(
-        { error: "Role is required" },
-        { status: 400 }
-      );
-    }
-
-    const user = await User.findByIdAndUpdate(
-      id,            
-      { role },
-      { new: true }
-    ).lean();
-
+    
+    await connectDB();
+    const { _id } = params;
+    const user = await User.findById(_id);
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-
-    return NextResponse.json(
-      { message: "User updated successfully", user },
-      { status: 200 }
-    );
-
+    return NextResponse.json(user);
   } catch (error) {
-    const err = error as Error;
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
+    console.error("GET /users/[id] error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await connectDB();
+    const { id } = params;
+    await User.findByIdAndDelete(id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DELETE /users/[id] error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

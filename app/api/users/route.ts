@@ -4,6 +4,6 @@ import dbConnect from "@/libs/db";
 
 export async function GET() {
   await dbConnect();
-  const users = await User.find();
+  const users = await User.find().sort({ createdAt: -1 }).lean();
   return NextResponse.json(users);
 }

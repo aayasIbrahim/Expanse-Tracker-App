@@ -16,13 +16,18 @@ export interface Transaction {
   date: string;
 }
 
+
 interface GetTransactionResponse {
   success: boolean;
   transactions: Transaction[];
   total: number;
   page: number;
   limit: number;
+  totalIncome: number;
+  totalExpense: number;
+  balance: number;
 }
+
 
 // ✅ Create API Slice
 export const transactionApi = createApi({

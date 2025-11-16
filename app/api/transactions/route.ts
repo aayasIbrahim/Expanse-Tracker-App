@@ -60,7 +60,6 @@ export async function POST(req: Request) {
   }
 }
 
-// ✅ GET — Fetch transactions with pagination
 export async function GET(req: Request) {
   try {
     await connectDB();
@@ -78,7 +77,6 @@ export async function GET(req: Request) {
     const isAdminOrManager =
       currentUser.role === "admin" || currentUser.role === "manager";
 
-    // ✅ Extract pagination params
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
@@ -90,6 +88,17 @@ export async function GET(req: Request) {
 
     const total = await query.clone().countDocuments();
 
+    // ✅ Calculate totals for all transactions (not just paginated)
+    const allTransactions = await query.clone();
+    const totalIncome = allTransactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const totalExpense = allTransactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const balance = totalIncome - totalExpense;
+
+    // ✅ Paginated transactions
     const transactions = await query
       .populate({ path: "userId", select: "name email", model: "User" })
       .sort({ createdAt: -1 })
@@ -97,7 +106,16 @@ export async function GET(req: Request) {
       .limit(limit);
 
     return NextResponse.json(
-      { success: true, transactions, total, page, limit },
+      {
+        success: true,
+        transactions,
+        total,
+        page,
+        limit,
+        totalIncome,
+        totalExpense,
+        balance,
+      },
       { status: 200 }
     );
   } catch (error) {
