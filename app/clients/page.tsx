@@ -1,147 +1,86 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React from "react";
+import { useGetUsersQuery, useUpdateRoleMutation } from "@/app/redux/features/user/userApi";
 
-// --- Type Definition ---
+type UserRole = "admin" | "manager" | "user";
+
 interface User {
   _id: string;
-  firstName?: string;
-  lastName?: string;
-  name?: string;
+  name: string;
   email: string;
-  role: "admin" | "manager" | "user";
+  role: UserRole;
 }
 
-export default function Client() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function ClientList() {
+  const { data, isLoading, isError } = useGetUsersQuery();
+  const [updateRole, { isLoading: isUpdating }] = useUpdateRoleMutation();
 
-  useEffect(() => {
-    fetch("/api/users")
-      .then((res) => res.json())
-      .then((data: User[]) => setUsers(data))
-      .finally(() => setLoading(false));
-  }, []);
+  // Determine users array safely
+  const users: User[] = Array.isArray(data) ? data : data?.users || [];
 
-  const changeRole = async (id: string, role: User["role"]) => {
-    await fetch(`/api/users/${id}/role`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role }),
-    });
-
-    setUsers(users.map((u) => (u._id === id ? { ...u, role } : u)));
+  const handleRoleChange = async (id: string, role: UserRole) => {
+    try {
+      await updateRole({ id, role }).unwrap();
+      alert(`User role changed to ${role}`);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update role");
+    }
   };
 
-  const deleteUser = async (id: string) => {
-    await fetch(`/api/users/${id}`, { method: "DELETE" });
-    setUsers(users.filter((u) => u._id !== id));
-  };
+  if (isLoading) return <p className="text-white">Loading users...</p>;
+  if (isError) return <p className="text-red-500">Failed to load users.</p>;
+  if (!users.length) return <p className="text-white">No users found.</p>;
 
   return (
-    <section className="min-h-screen bg-gray-900 text-gray-100">
-      <div className="p-6 container mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center text-white">
-          Administration Panel
-        </h1>
+    <div className="bg-black min-h-screen p-5">
+      <div className="space-y-3">
+        {users.map((user) => (
+          <div
+            key={user._id}
+            className="flex justify-between items-center border border-gray-700 p-4 rounded shadow-sm hover:shadow-md transition-shadow bg-gray-900"
+          >
+            <div>
+              <p className="font-medium text-white">{user.name}</p>
+              <p className="text-sm text-gray-400">{user.email}</p>
+              <p className="text-xs text-gray-500">Role: {user.role}</p>
+            </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border border-gray-700 rounded-lg shadow-lg divide-y divide-gray-700">
-            <thead className="bg-gray-800 text-left text-gray-300">
-              <tr>
-                <th className="p-3">Name</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Role</th>
-                <th className="p-3 text-center">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-gray-700">
-              {loading ? (
-                <tr>
-                  <td className="p-3 text-center" colSpan={4}>
-                    Loading...
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr
-                    key={user._id}
-                    className="hover:bg-gray-800 transition-colors duration-200"
-                  >
-                    <td className="p-3 break-words">
-                      {user.firstName && user.lastName
-                        ? `${user.firstName} ${user.lastName}`
-                        : user.name}
-                    </td>
-
-                    <td className="p-3 break-words">{user.email}</td>
-
-                    <td
-                      className={`p-3 font-semibold ${
-                        user.role === "admin"
-                          ? "text-purple-400"
-                          : user.role === "manager"
-                          ? "text-blue-400"
-                          : "text-gray-300"
-                      }`}
-                    >
-                      {user.role}
-                    </td>
-
-                    <td className="p-3 flex flex-wrap justify-center gap-2">
-                      {/* Prevent editing/deleting admin */}
-                      {user.role !== "admin" && (
-                        <>
-                          {/* Make Admin */}
-                          <button
-                            onClick={() => changeRole(user._id, "admin")}
-                            className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-                          >
-                            Make Admin
-                          </button>
-
-                          {/* Make Manager */}
-                          {user.role !== "manager" && (
-                            <button
-                              onClick={() => changeRole(user._id, "manager")}
-                              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                            >
-                              Make Manager
-                            </button>
-                          )}
-
-                          {/* Make User */}
-                          {user.role !== "user" && (
-                            <button
-                              onClick={() => changeRole(user._id, "user")}
-                              className="px-3 py-1 bg-yellow-500 text-gray-900 rounded hover:bg-yellow-600 transition-colors"
-                            >
-                              Make User
-                            </button>
-                          )}
-
-                          {/* Delete */}
-                          <button
-                            onClick={() => deleteUser(user._id)}
-                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))
+            <div className="flex gap-2">
+              {user.role !== "admin" && (
+                <button
+                  disabled={isUpdating}
+                  onClick={() => handleRoleChange(user._id, "admin")}
+                  className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Make Admin
+                </button>
               )}
-            </tbody>
-          </table>
 
-          {!loading && users.length === 0 && (
-            <p className="text-center text-gray-400 mt-6">No users found.</p>
-          )}
-        </div>
+              {user.role !== "manager" && (
+                <button
+                  disabled={isUpdating}
+                  onClick={() => handleRoleChange(user._id, "manager")}
+                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Make Manager
+                </button>
+              )}
+
+              {user.role !== "user" && (
+                <button
+                  disabled={isUpdating}
+                  onClick={() => handleRoleChange(user._id, "user")}
+                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Make User
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
-    </section>
+    </div>
   );
 }

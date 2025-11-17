@@ -3,7 +3,16 @@ import User from "@/models/User";
 import dbConnect from "@/libs/db";
 
 export async function GET() {
-  await dbConnect();
-  const users = await User.find().sort({ createdAt: -1 }).lean();
-  return NextResponse.json(users);
+  try {
+    await dbConnect();
+
+    const users = await User.find().sort({ createdAt: -1 });
+
+    return NextResponse.json({ users });
+  } catch {
+    return NextResponse.json(
+      { message: "Failed to fetch users" },
+      { status: 500 }
+    );
+  }
 }

@@ -1,30 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import  connectDB  from "@/libs/db";
 import User from "@/models/User";
+import dbConnect from "@/libs/db";
 
-interface RequestBody {
-  role: "admin" | "manager" | "user";
-}
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  await dbConnect();
 
-export async function PUT(req: NextRequest, context: { params: Promise<{ _id: string }> }) {
+  // ⛔ params is a Promise → FIX: await it
+  const { id } = await context.params;
+  console.log("Updating role for user ID:", id);
+
+  const { role } = await req.json();
+
+  if (!["admin", "manager", "user"].includes(role)) {
+    return NextResponse.json({ message: "Invalid role" }, { status: 400 });
+  }
+
   try {
-    await connectDB();
+    const user = await User.findByIdAndUpdate(id, { role }, { new: true });
 
-    const {_id } = await context.params; // ✅ Await params
-    const { role }: RequestBody = await req.json();
-
-    if (!["admin", "manager", "user"].includes(role)) {
-      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(_id, { role }, { new: true });
-    if (!updatedUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(updatedUser);
+    return NextResponse.json({ message: "Role updated", user });
   } catch (error) {
-    console.error("PUT /users/[id]/role error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error(error);
+    return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }

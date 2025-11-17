@@ -100,7 +100,7 @@ export async function GET(req: Request) {
 
     // ✅ Paginated transactions
     const transactions = await query
-      .populate({ path: "userId", select: "name email", model: "User" })
+      .populate({ path: "userId", select: "name email", model: "User" })      
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
