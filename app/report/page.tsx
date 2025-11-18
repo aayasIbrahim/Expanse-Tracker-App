@@ -63,7 +63,8 @@ export default function Report() {
     );
 
   return (
-    <div className="min-h-screen bg-black text-white px-4 sm:px-6 lg:px-10 py-8">
+   <section className="min-h-screen bg-black ">
+     <div className="container mx-auto text-white px-4 sm:px-6 lg:px-10 py-8">
       <h1 className="text-3xl font-bold mb-6 text-green-400 text-center">
         Monthly Report
       </h1>
@@ -121,5 +122,6 @@ export default function Report() {
         </div>
       </div>
     </div>
+   </section>
   );
 }

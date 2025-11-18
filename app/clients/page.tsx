@@ -34,7 +34,8 @@ export default function ClientList() {
   if (!users.length) return <p className="text-white">No users found.</p>;
 
  return (
-  <div className="bg-black min-h-screen p-6">
+ <section className="bg-black min-h-screen">
+   <div className="container mx-auto p-6">
     <h1 className="text-white text-2xl font-semibold mb-6">User Management</h1>
 
     <div className="space-y-4">
@@ -99,6 +100,7 @@ export default function ClientList() {
       ))}
     </div>
   </div>
+ </section>
 );
 
 }

@@ -10,8 +10,6 @@ export async function PATCH(
 
   // ⛔ params is a Promise → FIX: await it
   const { id } = await context.params;
-  console.log("Updating role for user ID:", id);
-
   const { role } = await req.json();
 
   if (!["admin", "manager", "user"].includes(role)) {
